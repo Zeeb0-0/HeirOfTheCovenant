@@ -1,23 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- This meta tag makes sure the UI scales with the device's width -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Heir of the Covenant</title>
     <style>
-      body, html {
+      /* Remove default margins and padding; set full height */
+      html, body {
         margin: 0;
         padding: 0;
-        background: #000;
+        width: 100%;
+        height: 100%;
       }
-      canvas {
-        display: block;
+      /* Container for the game canvas, fills the entire screen */
+      #game-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #000; /* Background for any uncovered space */
+      }
+      /* Ensure no scrollbars */
+      body {
+        overflow: hidden;
       }
     </style>
   </head>
   <body>
-    <!-- Load Phaser from a CDN -->
+    <!-- The game container div where our Phaser canvas will be injected -->
+    <div id="game-container"></div>
+    <!-- Load Phaser from CDN; mark this as a module so we can use modern ES6 import/export in our scripts -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.88.2/dist/phaser.min.js"></script>
-    <!-- Your main JS file -->
     <script type="module" src="src/main.js"></script>
   </body>
 </html>

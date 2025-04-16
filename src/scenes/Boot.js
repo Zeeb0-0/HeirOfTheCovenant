@@ -1,15 +1,15 @@
+// src/scenes/Boot.js
 export default class Boot extends Phaser.Scene {
-    constructor() {
-      super('Boot');
-    }
-    
-    preload() {
-      // (Optional) preload assets needed for the preloader itself if any
-    }
-    
-    create() {
-      // Once ready, start the Preloader scene.
-      this.scene.start('Preloader');
-    }
+  constructor() {
+    super('Boot');
   }
   
+  preload() {
+    // Optionally load any assets for the preloader here, if needed.
+  }
+  
+  create() {
+    // Start the preloader scene once Boot is finished.
+    this.scene.start('Preloader');
+  }
+}
