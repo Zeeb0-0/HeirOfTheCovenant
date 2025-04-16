@@ -2,37 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- This meta tag makes sure the UI scales with the device's width -->
+    <!-- Responsive meta tag -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Heir of the Covenant</title>
+    <!-- Link to Google Fonts for "IM Fell English" (or include locally hosted font files) -->
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&display=swap" rel="stylesheet">
     <style>
-      /* Remove default margins and padding; set full height */
+      /* Ensure full viewport usage and no default margins */
       html, body {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
       }
-      /* Container for the game canvas, fills the entire screen */
+      /* Container for the Phaser game canvas */
       #game-container {
         width: 100%;
         height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #000; /* Background for any uncovered space */
       }
-      /* Ensure no scrollbars */
+      /* Prevent any scrolling of the page */
       body {
         overflow: hidden;
       }
     </style>
   </head>
   <body>
-    <!-- The game container div where our Phaser canvas will be injected -->
+    <!-- The game canvas will be injected into this container -->
     <div id="game-container"></div>
-    <!-- Load Phaser from CDN; mark this as a module so we can use modern ES6 import/export in our scripts -->
+    <!-- Phaser will be available as a global variable via the CDN -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.88.2/dist/phaser.min.js"></script>
+    <!-- Main JavaScript file loaded as an ES6 module -->
     <script type="module" src="src/main.js"></script>
   </body>
 </html>

@@ -5,7 +5,8 @@ export default class MainScene extends Phaser.Scene {
   }
   
   preload() {
-    // Load the spritesheets. Adjust these paths as needed.
+    // Load your player spritesheets as previously defined.
+    // (Assuming same assets as before for idle, walk, and run animations.)
     const basePath = 'assets/sprites/Entities/Characters/Body_A/Animations';
     
     // Idle animations (4 frames each)
@@ -25,7 +26,10 @@ export default class MainScene extends Phaser.Scene {
   }
   
   create() {
-    // Helper function to create animations for a given key and frame count.
+    // First, update our key bindings using the current global settings.
+    this.updateKeyBindings();
+
+    // Create animations for all states using a helper function.
     const createAnim = (animKey, frameCount, frameRate = 8) => {
       this.anims.create({
         key: animKey,
@@ -34,66 +38,76 @@ export default class MainScene extends Phaser.Scene {
         repeat: -1,
       });
     };
-    
-    // Create animations for each state. Idle animations use 4 frames.
+
+    // Idle animations (4 frames)
     createAnim('idleDown', 4);
     createAnim('idleUp', 4);
     createAnim('idleSide', 4);
-    
-    // Walking animations use 6 frames.
+
+    // Walking animations (6 frames)
     createAnim('walkDown', 6);
     createAnim('walkUp', 6);
     createAnim('walkSide', 6);
-    
-    // Running animations use 6 frames, with a faster frame rate.
+
+    // Running animations (6 frames, faster)
     createAnim('runDown', 6, 12);
     createAnim('runUp', 6, 12);
     createAnim('runSide', 6, 12);
-    
-    // Create player sprite at center of game.
-    // Set starting texture as idleDown
+
+    // Create player sprite at center of the game.
     this.player = this.physics.add.sprite(this.game.config.width / 2, this.game.config.height / 2, 'idleDown');
     
-    // Increase the size of the player sprite for better visibility (scale factor, e.g., 2x)
+    // Increase player sprite size for better visibility.
     this.player.setScale(2);
     
-    // Ensure the player stays within game bounds.
+    // Keep the player within game bounds.
     this.player.setCollideWorldBounds(true);
     
-    // Custom property to track current facing direction.
+    // Track the player's current facing direction.
     this.player.facing = 'down';
     
-    // Start with the idleDown animation.
+    // Play the initial idle animation.
     this.player.anims.play('idleDown');
-    
-    // Set up keyboard input using WASD and Shift for running.
-    this.keys = this.input.keyboard.addKeys({
-      up: Phaser.Input.Keyboard.KeyCodes.W,
-      down: Phaser.Input.Keyboard.KeyCodes.S,
-      left: Phaser.Input.Keyboard.KeyCodes.A,
-      right: Phaser.Input.Keyboard.KeyCodes.D,
-      shift: Phaser.Input.Keyboard.KeyCodes.SHIFT
-    });
-    
-    // Define speed values for walking and running.
+
+    // Define speed for walking and running.
     this.walkSpeed = 150;
     this.runSpeed = 250;
   }
   
+  // Helper: Update key bindings by reading current values from window.gameSettings.
+  updateKeyBindings() {
+    // Remove any previously defined keys if they exist to avoid duplicates.
+    if (this.keys) {
+      this.input.keyboard.removeKey(this.keys.up);
+      this.input.keyboard.removeKey(this.keys.down);
+      this.input.keyboard.removeKey(this.keys.left);
+      this.input.keyboard.removeKey(this.keys.right);
+    }
+    // Define keys based on global settings.
+    // The global settings values should be strings like 'W' or 'ARROWUP'.
+    this.keys = this.input.keyboard.addKeys({
+      up: window.gameSettings.moveUp.toUpperCase(),
+      down: window.gameSettings.moveDown.toUpperCase(),
+      left: window.gameSettings.moveLeft.toUpperCase(),
+      right: window.gameSettings.moveRight.toUpperCase(),
+      shift: Phaser.Input.Keyboard.KeyCodes.SHIFT
+    });
+  }
+  
   update() {
-    // Calculate velocity based on key inputs.
+    // Check the current keybinds for movement.
+    // Use the keys defined in this.keys which were created in updateKeyBindings().
     const { up, down, left, right, shift } = this.keys;
     const isRunning = shift.isDown;
     const speed = isRunning ? this.runSpeed : this.walkSpeed;
     
-    // Reset velocity at the start of each frame.
+    // Reset velocity.
     this.player.setVelocity(0);
-    
     let velocityX = 0;
     let velocityY = 0;
-    let animKey = ''; // This will determine which animation to play.
-    
-    // Horizontal input: left or right.
+    let animKey = '';
+
+    // Horizontal movement based on keybind remapping.
     if (left.isDown) {
       velocityX = -speed;
       this.player.setFlipX(true); // Face left.
@@ -105,8 +119,8 @@ export default class MainScene extends Phaser.Scene {
       this.player.facing = 'side';
       animKey = isRunning ? 'runSide' : 'walkSide';
     }
-    
-    // Vertical input: up or down.
+
+    // Vertical movement based on keybind remapping.
     if (up.isDown) {
       velocityY = -speed;
       this.player.facing = 'up';
@@ -117,15 +131,16 @@ export default class MainScene extends Phaser.Scene {
       animKey = isRunning ? 'runDown' : 'walkDown';
     }
     
-    // Set the calculated velocity.
+    // Apply calculated velocities to the player sprite.
     this.player.setVelocity(velocityX, velocityY);
     
-    // Determine which animation to play:
-    // If any movement keys are pressed, play the appropriate walk/run animation. Otherwise, revert to the idle animation corresponding to the last facing direction.
+    // Choose the proper animation based on movement, or idle if no keys are pressed.
     if (up.isDown || down.isDown || left.isDown || right.isDown) {
-      if (animKey !== '') {this.player.anims.play(animKey, true);}
-    } else {      
-    // Compose the idle animation key from the current facing direction.\n
+      if (animKey !== '') {
+        this.player.anims.play(animKey, true);
+      }
+    } else {
+      // When idle, choose the idle animation based on the last facing direction.
       const idleKey = 'idle' + this.player.facing.charAt(0).toUpperCase() + this.player.facing.slice(1);
       this.player.anims.play(idleKey, true);
     }
