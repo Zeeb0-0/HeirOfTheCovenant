@@ -1,148 +1,127 @@
 // src/scenes/MainScene.js
-export default class MainScene extends Phaser.Scene {
+
+import BaseScene  from './BaseScene.js';
+import AssetPaths from '../config/AssetPaths.js';
+
+export default class MainScene extends BaseScene {
   constructor() {
     super('MainScene');
   }
-  
-  preload() {
-    // Load your player spritesheets as previously defined.
-    // (Assuming same assets as before for idle, walk, and run animations.)
-    const basePath = 'assets/sprites/Entities/Characters/Body_A/Animations';
-    
-    // Idle animations (4 frames each)
-    this.load.spritesheet('idleDown', `${basePath}/Idle_Base/Idle_Down-Sheet.png`, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('idleUp', `${basePath}/Idle_Base/Idle_Up-Sheet.png`, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('idleSide', `${basePath}/Idle_Base/Idle_Side-Sheet.png`, { frameWidth: 64, frameHeight: 64 });
-    
-    // Walking animations (6 frames each)
-    this.load.spritesheet('walkDown', `${basePath}/Walk_Base/Walk_Down-Sheet.png`, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('walkUp', `${basePath}/Walk_Base/Walk_Up-Sheet.png`, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('walkSide', `${basePath}/Walk_Base/Walk_Side-Sheet.png`, { frameWidth: 64, frameHeight: 64 });
-    
-    // Running animations (6 frames each)
-    this.load.spritesheet('runDown', `${basePath}/Run_Base/Run_Down-Sheet.png`, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('runUp', `${basePath}/Run_Base/Run_Up-Sheet.png`, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('runSide', `${basePath}/Run_Base/Run_Side-Sheet.png`, { frameWidth: 64, frameHeight: 64 });
-  }
-  
-  create() {
-    // First, update our key bindings using the current global settings.
-    this.updateKeyBindings();
 
-    // Create animations for all states using a helper function.
-    const createAnim = (animKey, frameCount, frameRate = 8) => {
+  preload() {
+    // Load all your character spritesheets
+    const frames = { frameWidth: 64, frameHeight: 64 };
+    for (const [key, path] of Object.entries(AssetPaths.sprites)) {
+      this.load.spritesheet(key, path, frames);
+    }
+
+    // // Later: load your tilemap JSON & tileset image
+    // this.load.tilemapTiledJSON('worldMap', 'assets/maps/yourmap.json');
+    // this.load.image('tiles', 'assets/tilesets/yourTileset.png');
+  }
+
+  create() {
+    super.init(); // sets up SettingsManager & InputManager
+
+    const cam = this.cameras.main;
+
+    // --- WORLD BOUNDS (placeholder) ---
+    // For now, create an empty world twice the viewport size
+    const worldWidth  = cam.width * 2;
+    const worldHeight = cam.height * 2;
+    this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+    cam.setBounds(0, 0, worldWidth, worldHeight);
+
+    // // Later: if using a tilemap, uncomment and replace bounds with map dimensions
+    // const map = this.make.tilemap({ key: 'worldMap' });
+    // const tileset = map.addTilesetImage('YourTilesetName', 'tiles');
+    // map.createLayer('Ground', tileset, 0, 0);
+    // const walls = map.createLayer('Collision', tileset, 0, 0);
+    // walls.setCollisionByProperty({ collides: true });
+    // this.physics.add.collider(this.player, walls);
+    // cam.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    // this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
+    // --- ANIMATIONS SETUP ---
+    const makeAnim = (key, framesCount, fps = 8) => {
       this.anims.create({
-        key: animKey,
-        frames: this.anims.generateFrameNumbers(animKey, { start: 0, end: frameCount - 1 }),
-        frameRate: frameRate,
-        repeat: -1,
+        key,
+        frames: this.anims.generateFrameNumbers(key, { start: 0, end: framesCount - 1 }),
+        frameRate: fps,
+        repeat: -1
       });
     };
 
-    // Idle animations (4 frames)
-    createAnim('idleDown', 4);
-    createAnim('idleUp', 4);
-    createAnim('idleSide', 4);
+    makeAnim('idleDown',  4);
+    makeAnim('idleUp',    4);
+    makeAnim('idleSide',  4);
 
-    // Walking animations (6 frames)
-    createAnim('walkDown', 6);
-    createAnim('walkUp', 6);
-    createAnim('walkSide', 6);
+    makeAnim('walkDown',  6);
+    makeAnim('walkUp',    6);
+    makeAnim('walkSide',  6);
 
-    // Running animations (6 frames, faster)
-    createAnim('runDown', 6, 12);
-    createAnim('runUp', 6, 12);
-    createAnim('runSide', 6, 12);
+    makeAnim('runDown',   6, 12);
+    makeAnim('runUp',     6, 12);
+    makeAnim('runSide',   6, 12);
 
-    // Create player sprite at center of the game.
-    this.player = this.physics.add.sprite(this.game.config.width / 2, this.game.config.height / 2, 'idleDown');
-    
-    // Increase player sprite size for better visibility.
-    this.player.setScale(2);
-    
-    // Keep the player within game bounds.
-    this.player.setCollideWorldBounds(true);
-    
-    // Track the player's current facing direction.
+    // --- PLAYER CREATION ---
+    this.player = this.physics.add
+      .sprite(worldWidth / 2, worldHeight / 2, 'idleDown')
+      .setScale(2)
+      .setCollideWorldBounds(true);
+
     this.player.facing = 'down';
-    
-    // Play the initial idle animation.
     this.player.anims.play('idleDown');
 
-    // Define speed for walking and running.
+    // Camera follows the player with a little lag (lerp)
+    cam.startFollow(this.player, true, 0.08, 0.08);
+
+    // Movement speeds
     this.walkSpeed = 150;
-    this.runSpeed = 250;
+    this.runSpeed  = 250;
   }
-  
-  // Helper: Update key bindings by reading current values from window.gameSettings.
-  updateKeyBindings() {
-    // Remove any previously defined keys if they exist to avoid duplicates.
-    if (this.keys) {
-      this.input.keyboard.removeKey(this.keys.up);
-      this.input.keyboard.removeKey(this.keys.down);
-      this.input.keyboard.removeKey(this.keys.left);
-      this.input.keyboard.removeKey(this.keys.right);
-    }
-    // Define keys based on global settings.
-    // The global settings values should be strings like 'W' or 'ARROWUP'.
-    this.keys = this.input.keyboard.addKeys({
-      up: window.gameSettings.moveUp.toUpperCase(),
-      down: window.gameSettings.moveDown.toUpperCase(),
-      left: window.gameSettings.moveLeft.toUpperCase(),
-      right: window.gameSettings.moveRight.toUpperCase(),
-      shift: Phaser.Input.Keyboard.KeyCodes.SHIFT
-    });
-  }
-  
+
   update() {
-    // Check the current keybinds for movement.
-    // Use the keys defined in this.keys which were created in updateKeyBindings().
-    const { up, down, left, right, shift } = this.keys;
-    const isRunning = shift.isDown;
-    const speed = isRunning ? this.runSpeed : this.walkSpeed;
-    
-    // Reset velocity.
-    this.player.setVelocity(0);
-    let velocityX = 0;
-    let velocityY = 0;
-    let animKey = '';
+    // Use your InputManager remapped keys
+    const im    = this.inputMgr;
+    const isRun = im.isDown('shift');
+    const speed = isRun ? this.runSpeed : this.walkSpeed;
 
-    // Horizontal movement based on keybind remapping.
-    if (left.isDown) {
-      velocityX = -speed;
-      this.player.setFlipX(true); // Face left.
+    let vx = 0, vy = 0, animKey = '';
+
+    // Horizontal
+    if (im.isDown('left')) {
+      vx = -speed;
+      this.player.setFlipX(true);
       this.player.facing = 'side';
-      animKey = isRunning ? 'runSide' : 'walkSide';
-    } else if (right.isDown) {
-      velocityX = speed;
-      this.player.setFlipX(false); // Face right.
+      animKey = isRun ? 'runSide'  : 'walkSide';
+    } else if (im.isDown('right')) {
+      vx = speed;
+      this.player.setFlipX(false);
       this.player.facing = 'side';
-      animKey = isRunning ? 'runSide' : 'walkSide';
+      animKey = isRun ? 'runSide'  : 'walkSide';
     }
 
-    // Vertical movement based on keybind remapping.
-    if (up.isDown) {
-      velocityY = -speed;
+    // Vertical
+    if (im.isDown('up')) {
+      vy = -speed;
       this.player.facing = 'up';
-      animKey = isRunning ? 'runUp' : 'walkUp';
-    } else if (down.isDown) {
-      velocityY = speed;
+      animKey = isRun ? 'runUp'    : 'walkUp';
+    } else if (im.isDown('down')) {
+      vy = speed;
       this.player.facing = 'down';
-      animKey = isRunning ? 'runDown' : 'walkDown';
+      animKey = isRun ? 'runDown'  : 'walkDown';
     }
-    
-    // Apply calculated velocities to the player sprite.
-    this.player.setVelocity(velocityX, velocityY);
-    
-    // Choose the proper animation based on movement, or idle if no keys are pressed.
-    if (up.isDown || down.isDown || left.isDown || right.isDown) {
-      if (animKey !== '') {
-        this.player.anims.play(animKey, true);
-      }
+
+    // Apply velocity
+    this.player.setVelocity(vx, vy);
+
+    // Play animation or idle
+    if (vx !== 0 || vy !== 0) {
+      this.player.anims.play(animKey, true);
     } else {
-      // When idle, choose the idle animation based on the last facing direction.
-      const idleKey = 'idle' + this.player.facing.charAt(0).toUpperCase() + this.player.facing.slice(1);
-      this.player.anims.play(idleKey, true);
+      const idle = 'idle' + this.player.facing.charAt(0).toUpperCase() + this.player.facing.slice(1);
+      this.player.anims.play(idle, true);
     }
   }
 }
