@@ -1,7 +1,8 @@
 // src/scenes/MainScene.js
 
-import BaseScene  from './BaseScene.js';
-import AssetPaths from '../config/AssetPaths.js';
+import BaseScene        from './BaseScene.js';
+import AssetPaths       from '../config/AssetPaths.js';
+import AnimationManager from '../managers/AnimationManager.js';
 
 export default class MainScene extends BaseScene {
   constructor() {
@@ -9,202 +10,209 @@ export default class MainScene extends BaseScene {
   }
 
   preload() {
-    // (Same as before: load spritesheets for movement, hit, pierce, death)
-    const frames = { frameWidth: 64, frameHeight: 64 };
+    // Preload every spritesheet defined in AssetPaths.sprites
+    // so that AnimationManager can register them later.
+    const frameConfig = { frameWidth: 64, frameHeight: 64 };
     for (const [key, path] of Object.entries(AssetPaths.sprites)) {
-      this.load.spritesheet(key, path, frames);
+      this.load.spritesheet(key, path, frameConfig);
     }
-    const base = 'assets/sprites/Entities/Characters/Body_A/Animations';
-    this.load.spritesheet('hitDown',   `${base}/Hit_Base/Hit_Down-Sheet.png`,   frames);
-    this.load.spritesheet('hitUp',     `${base}/Hit_Base/Hit_Up-Sheet.png`,     frames);
-    this.load.spritesheet('hitSide',   `${base}/Hit_Base/Hit_Side-Sheet.png`,   frames);
-    this.load.spritesheet('pierceDown',`${base}/Pierce_Base/Pierce_Down-Sheet.png`,frames);
-    this.load.spritesheet('pierceUp',  `${base}/Pierce_Base/Pierce_Up-Sheet.png`,  frames);
-    this.load.spritesheet('pierceSide',`${base}/Pierce_Base/Pierce_Side-Sheet.png`,frames);
-    this.load.spritesheet('deathDown', `${base}/Death_Base/Death_Down-Sheet.png`,  frames);
-    this.load.spritesheet('deathUp',   `${base}/Death_Base/Death_Up-Sheet.png`,    frames);
-    this.load.spritesheet('deathSide', `${base}/Death_Base/Death_Side-Sheet.png`,  frames);
   }
 
   create() {
-    super.init();
+    super.init();  // Initialize SettingsManager & InputManager
 
-    // Ensure analytics stub
-    if (!window.analytics) window.analytics = { logEvent: (e,d)=>console.log('[Analytics]',e,d) };
+    // Initialize and register ALL animations (player, NPCs, mobs)
+    this.animationManager = new AnimationManager(this);
+    this.animationManager.createAllAnimations();
 
-    const cam = this.cameras.main;
-    const worldW = cam.width * 2, worldH = cam.height * 2;
-    this.physics.world.setBounds(0,0,worldW,worldH);
-    cam.setBounds(0,0,worldW,worldH);
+    // Placeholder world bounds: twice the viewport in each direction
+    // Replace these with your tilemap dimensions once your map is ready.
+    const cam     = this.cameras.main;
+    const worldW  = cam.width  * 2;
+    const worldH  = cam.height * 2;
+    this.physics.world.setBounds(0, 0, worldW, worldH);
+    cam.setBounds(0, 0, worldW, worldH);
 
-    // Create animations (idle, walk, run, hit, pierce, death) with repeat false for actions
-    const makeAnim = (key,count,fps=8,loop=true) => {
-      this.anims.create({
-        key,
-        frames: this.anims.generateFrameNumbers(key, {start:0,end:count-1}),
-        frameRate: fps,
-        repeat: loop ? -1 : 0
-      });
-    };
-    // Idle, Walk, Run
-    makeAnim('idleDown',4);
-    makeAnim('idleUp',4);
-    makeAnim('idleSide',4);
-    makeAnim('walkDown',6); makeAnim('walkUp',6); makeAnim('walkSide',6);
-    makeAnim('runDown',6,12); makeAnim('runUp',6,12); makeAnim('runSide',6,12);
-    // Hit (for damage)
-    makeAnim('hitDown',4,8,false);
-    makeAnim('hitUp',4,8,false);
-    makeAnim('hitSide',4,8,false);
-    // Pierce (player attack)
-    makeAnim('pierceDown',8,12,false);
-    makeAnim('pierceUp',8,12,false);
-    makeAnim('pierceSide',8,12,false);
-    // Death
-    makeAnim('deathDown',8,6,false);
-    makeAnim('deathUp',8,6,false);
-    makeAnim('deathSide',8,6,false);
-
-    // Player
-    this.player = this.physics.add.sprite(worldW/2, worldH/2, 'idleDown')
-      .setScale(2)
+    // ---- PLAYER SETUP ----
+    // Create the player sprite in the center of the world.
+    this.player = this.physics.add
+      .sprite(worldW / 2, worldH / 2, 'idleDown')
+      .setScale(2)                // Make the sprite larger for visibility
       .setCollideWorldBounds(true);
-    this.player.facing = 'down';
-    this.player.anims.play('idleDown');
-    this.isAttacking = false;
-    this.isDead      = false;
 
+    // Track state flags
+    this.player.facing    = 'down';  // 'down' | 'up' | 'side'
+    this.isAttacking      = false;   // true while performing a pierce animation
+    this.isDead           = false;   // true after death animation
+
+    // Start with the idle-down animation
+    this.player.anims.play('idleDown');
+
+    // ---- CAMERA ----
+    // Have the camera follow the player with a slight lerp
     cam.startFollow(this.player, true, 0.08, 0.08);
+
+    // ---- MOVEMENT SPEEDS ----
     this.walkSpeed = 150;
     this.runSpeed  = 250;
 
-    // Attack key now only does sword pierce
-    const atk = this.inputMgr.keys.attack;
-    atk.on('down', () => {
+    // ---- INPUT: ATTACK ----
+    // Attack key triggers ONLY the sword-pierce animation.
+    const attackKey = this.inputMgr.keys.attack;
+    attackKey.on('down', () => {
       if (this.isDead || this.isAttacking) return;
       this.isAttacking = true;
       this._playOnce('pierce');
     });
 
-    // Death test on K
+    // ---- TEST: DEATH ON 'K' ----
     this.input.keyboard.on('keydown-K', () => {
-      if (!this.isDead) this._die();
+      if (!this.isDead) {
+        this._die();
+      }
     });
 
-    // Build death modal (a plain container)
+    // ---- DEATH / RESPAWN UI ----
+    // Build and hide the "You Died" modal for respawn
     this._createDeathModal();
   }
 
   update() {
+    // If dead, ignore all input
     if (this.isDead) return;
 
-    // Cancel attack if movement keys pressed
+    // If currently attacking, allow movement input to cancel it
     if (this.isAttacking) {
+      const im = this.inputMgr;
       if (
-        this.inputMgr.isDown('left') || this.inputMgr.isDown('right') ||
-        this.inputMgr.isDown('up')   || this.inputMgr.isDown('down')
+        im.isDown('left')  || im.isDown('right') ||
+        im.isDown('up')    || im.isDown('down')
       ) {
+        // Cancel the attack and resume idle
         this.isAttacking = false;
         this._resumeIdle();
       }
-      return;
+      return;  // Skip movement/animation logic while attack is active
     }
 
-    // Movement
-    const im = this.inputMgr;
-    const running = im.isDown('shift');
-    const speed = running ? this.runSpeed : this.walkSpeed;
-    let vx=0, vy=0, anim='';
+    // ---- MOVEMENT & RUN/WALK ----
+    const im       = this.inputMgr;
+    const running  = im.isDown('shift');
+    const speed    = running ? this.runSpeed : this.walkSpeed;
+    let vx = 0, vy = 0, animKey = '';
 
+    // Horizontal movement
     if (im.isDown('left')) {
-      vx = -speed; this.player.setFlipX(true); this.player.facing='side';
-      anim = running ? 'runSide':'walkSide';
+      vx = -speed;
+      this.player.setFlipX(true);
+      this.player.facing = 'side';
+      animKey = running ? 'runSide' : 'walkSide';
     } else if (im.isDown('right')) {
-      vx = speed; this.player.setFlipX(false); this.player.facing='side';
-      anim = running ? 'runSide':'walkSide';
-    }
-    if (im.isDown('up')) {
-      vy = -speed; this.player.facing='up';
-      anim = running ? 'runUp':'walkUp';
-    } else if (im.isDown('down')) {
-      vy = speed; this.player.facing='down';
-      anim = running ? 'runDown':'walkDown';
+      vx = speed;
+      this.player.setFlipX(false);
+      this.player.facing = 'side';
+      animKey = running ? 'runSide' : 'walkSide';
     }
 
+    // Vertical movement
+    if (im.isDown('up')) {
+      vy = -speed;
+      this.player.facing = 'up';
+      animKey = running ? 'runUp' : 'walkUp';
+    } else if (im.isDown('down')) {
+      vy = speed;
+      this.player.facing = 'down';
+      animKey = running ? 'runDown' : 'walkDown';
+    }
+
+    // Apply velocity
     this.player.setVelocity(vx, vy);
 
-    if (vx||vy) {
-      this.player.anims.play(anim, true);
+    // Play the relevant animation
+    if (vx !== 0 || vy !== 0) {
+      this.player.anims.play(animKey, true);
     } else {
+      // No input: revert to idle animation
       this._resumeIdle();
     }
   }
 
-  // Helper to play non-looping animations
-  _playOnce(base) {
+  // ---- HELPER: PLAY ONE-SHOT ANIMATION ----
+  _playOnce(baseKey) {
     const dir = this.player.facing;
-    const key = base + dir.charAt(0).toUpperCase() + dir.slice(1);
-    this.player.anims.play(key);
+    const fullKey = baseKey + dir.charAt(0).toUpperCase() + dir.slice(1);
+    this.player.anims.play(fullKey);
     this.player.once('animationcomplete', () => {
       this.isAttacking = false;
       this._resumeIdle();
     });
   }
 
-  // Handle death
-  _die() {
-    this.isDead = true;
-    window.analytics.logEvent('player_died', { time:Date.now() });
-    const dir = this.player.facing;
-    const key = 'death' + dir.charAt(0).toUpperCase() + dir.slice(1);
-    this.player.setVelocity(0);
-    this.player.anims.play(key);
-    this.player.once('animationcomplete', () => {
-      // show the modal via setVisible
-      this.deathModal.setVisible(true);
-    });
-  }
-
+  // ---- HELPER: RESUME IDLE ----
   _resumeIdle() {
     const key = 'idle' + this.player.facing.charAt(0).toUpperCase() + this.player.facing.slice(1);
     this.player.anims.play(key, true);
   }
 
-  // Create a simple "You Died" UI container
-  _createDeathModal() {
-    const cam = this.cameras.main;
-    // Container
-    this.deathModal = this.add.container(0,0).setVisible(false);
+  // ---- DEATH HANDLING ----
+  _die() {
+    this.isDead = true;
+    // Log analytics event
+    window.analytics.logEvent('player_died', { timestamp: Date.now() });
 
-    // Backdrop
-    const bg = this.add.rectangle(cam.centerX, cam.centerY, cam.width, cam.height, 0x000000, 0.7);
-    // Box
-    const boxW = cam.width * 0.6, boxH = cam.height * 0.4;
-    const box  = this.add.rectangle(cam.centerX, cam.centerY, boxW, boxH, 0x222222);
-    // Text
-    const text= this.add.text(cam.centerX, cam.centerY-40, 'You Died', {
-      font:'40px "IM Fell English"', fill:'#ff4444'
-    }).setOrigin(0.5);
-    // Respawn button
-    const btn = this.add.text(cam.centerX, cam.centerY+40, 'Respawn', {
-      fontFamily:'"IM Fell English", serif',
-      fontSize:'32px',
-      fill:'#ffffff',
-      backgroundColor:'#004400',
-      padding:{ x:20, y:10 }
-    })
-    .setOrigin(0.5)
-    .setInteractive({ useHandCursor:true })
-    .on('pointerdown', () => this._respawn());
-
-    this.deathModal.add([ bg, box, text, btn ]);
+    // Play the death animation once
+    const dir = this.player.facing;
+    const key = 'death' + dir.charAt(0).toUpperCase() + dir.slice(1);
+    this.player.setVelocity(0);
+    this.player.anims.play(key);
+    this.player.once('animationcomplete', () => {
+      // Show the death/resurrect modal
+      this.deathModal.setVisible(true);
+    });
   }
 
+  // ---- DEATH MODAL / RESPAWN ----
+  _createDeathModal() {
+    const cam = this.cameras.main;
+    // Container to hold all UI elements
+    this.deathModal = this.add.container(0, 0).setVisible(false);
+
+    // Semi-transparent full-screen backdrop
+    const bg = this.add.rectangle(cam.centerX, cam.centerY, cam.width, cam.height, 0x000000, 0.7);
+
+    // Centered dialog box
+    const boxW = cam.width * 0.6;
+    const boxH = cam.height * 0.4;
+    const box  = this.add.rectangle(cam.centerX, cam.centerY, boxW, boxH, 0x222222);
+
+    // "You Died" text
+    const txt = this.add.text(cam.centerX, cam.centerY - 40, 'You Died', {
+      font: '40px "IM Fell English"',
+      fill: '#ff4444'
+    }).setOrigin(0.5);
+
+    // Respawn button
+    const btn = this.add.text(cam.centerX, cam.centerY + 40, 'Respawn', {
+      fontFamily: '"IM Fell English", serif',
+      fontSize: '32px',
+      fill: '#ffffff',
+      backgroundColor: '#004400',
+      padding: { x: 20, y: 10 }
+    })
+    .setOrigin(0.5)
+    .setInteractive({ useHandCursor: true })
+    .on('pointerdown', () => this._respawn());
+
+    // Add all to container
+    this.deathModal.add([bg, box, txt, btn]);
+  }
+
+  // ---- HELPER: RESPAWN PLAYER ----
   _respawn() {
-    window.analytics.logEvent('player_respawn', { time:Date.now() });
+    window.analytics.logEvent('player_respawn', { timestamp: Date.now() });
     this.deathModal.setVisible(false);
     this.isDead = false;
-    // Reset position to center
+    // Reset position to center of world (or use a saved checkpoint)
     const cam = this.cameras.main;
     this.player.setPosition(cam.centerX, cam.centerY);
     this._resumeIdle();
