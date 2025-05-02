@@ -1,8 +1,11 @@
 // src/scenes/MainScene.js
 
-import BaseScene        from './BaseScene.js';
-import AssetPaths       from '../config/AssetPaths.js';
-import AnimationManager from '../managers/AnimationManager.js';
+import BaseScene           from './BaseScene.js';
+import AssetPaths          from '../config/AssetPaths.js';
+import AnimationManager    from '../managers/AnimationManager.js';
+import HealthManager       from '../managers/HealthManager.js';
+import UIManager           from '../managers/UIManager.js';
+import AnimationController from '../managers/AnimationController.js';
 
 export default class MainScene extends BaseScene {
   constructor() {
@@ -10,211 +13,128 @@ export default class MainScene extends BaseScene {
   }
 
   preload() {
-    // Preload every spritesheet defined in AssetPaths.sprites
-    // so that AnimationManager can register them later.
-    const frameConfig = { frameWidth: 64, frameHeight: 64 };
-    for (const [key, path] of Object.entries(AssetPaths.sprites)) {
-      this.load.spritesheet(key, path, frameConfig);
-    }
+    // 1) Load all character spritesheets (player, NPCs, mobs)
+    Object.entries(AssetPaths.sprites).forEach(([key, cfg]) => {
+      this.load.spritesheet(key, cfg.path, {
+        frameWidth:  cfg.frameWidth,
+        frameHeight: cfg.frameHeight
+      });
+    });
+
+    // 2) Load UI spritesheet for health bar
+    const uiCfg = AssetPaths.ui.lifeHealing;
+    this.load.spritesheet('lifeHealing', uiCfg.path, {
+      frameWidth:  uiCfg.frameWidth,
+      frameHeight: uiCfg.frameHeight
+    });
   }
 
   create() {
-    super.init();  // Initialize SettingsManager & InputManager
+    super.init();  // SettingsManager, InputManager, audio volume
 
-    // Initialize and register ALL animations (player, NPCs, mobs)
+    // -- 1) Animations --
     this.animationManager = new AnimationManager(this);
-    this.animationManager.createAllAnimations();
+    // Only create player & UI animations to avoid missing-texture errors:
+    this.animationManager.createPlayerAnimations();
+    this.animationManager.createUIAnimations();
 
-    // Placeholder world bounds: twice the viewport in each direction
-    // Replace these with your tilemap dimensions once your map is ready.
-    const cam     = this.cameras.main;
-    const worldW  = cam.width  * 2;
-    const worldH  = cam.height * 2;
+    // -- 2) Health system --
+    this.healthManager = new HealthManager(100);
+
+    // -- 3) UI system (health bar, death modal) --
+    this.uiManager = new UIManager(this, this.healthManager);
+
+    // -- 4) World & camera bounds (placeholder) --
+    const cam    = this.cameras.main;
+    const worldW = cam.width  * 2;
+    const worldH = cam.height * 2;
     this.physics.world.setBounds(0, 0, worldW, worldH);
     cam.setBounds(0, 0, worldW, worldH);
 
-    // ---- PLAYER SETUP ----
-    // Create the player sprite in the center of the world.
+    // -- 5) Player sprite setup --
     this.player = this.physics.add
       .sprite(worldW / 2, worldH / 2, 'idleDown')
-      .setScale(2)                // Make the sprite larger for visibility
+      .setScale(2)
       .setCollideWorldBounds(true);
+    this.player.facing = 'down';
 
-    // Track state flags
-    this.player.facing    = 'down';  // 'down' | 'up' | 'side'
-    this.isAttacking      = false;   // true while performing a pierce animation
-    this.isDead           = false;   // true after death animation
+    // -- 6) Animation controller listens for attack, damage, death, respawn --
+    this.animationController = new AnimationController(
+      this,
+      this.player,
+      this.healthManager
+    );
 
-    // Start with the idle-down animation
-    this.player.anims.play('idleDown');
-
-    // ---- CAMERA ----
-    // Have the camera follow the player with a slight lerp
+    // -- 7) Camera follows player with smoothing --
     cam.startFollow(this.player, true, 0.08, 0.08);
 
-    // ---- MOVEMENT SPEEDS ----
+    // -- 8) Movement speeds --
     this.walkSpeed = 150;
     this.runSpeed  = 250;
 
-    // ---- INPUT: ATTACK ----
-    // Attack key triggers ONLY the sword-pierce animation.
-    const attackKey = this.inputMgr.keys.attack;
-    attackKey.on('down', () => {
-      if (this.isDead || this.isAttacking) return;
-      this.isAttacking = true;
-      this._playOnce('pierce');
-    });
-
-    // ---- TEST: DEATH ON 'K' ----
-    this.input.keyboard.on('keydown-K', () => {
-      if (!this.isDead) {
-        this._die();
+    // -- 9) Attack input --
+    // Try to get the remapped Attack key; fall back to SPACE if undefined.
+    let atkKey = this.inputMgr.getKey('attack');
+    if (!atkKey) {
+      atkKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    }
+    atkKey.on('down', () => {
+      if (this.healthManager.hp > 0) {
+        this.events.emit('playerAttack');
       }
     });
 
-    // ---- DEATH / RESPAWN UI ----
-    // Build and hide the "You Died" modal for respawn
-    this._createDeathModal();
+    // -- 10) Testing hotkeys --
+    this.input.keyboard.on('keydown-H', () => this.healthManager.takeDamage(20));
+    this.input.keyboard.on('keydown-J', () => this.healthManager.heal(15));
+    this.input.keyboard.on('keydown-K', () => this.healthManager.takeDamage(9999));
   }
 
   update() {
-    // If dead, ignore all input
-    if (this.isDead) return;
-
-    // If currently attacking, allow movement input to cancel it
-    if (this.isAttacking) {
-      const im = this.inputMgr;
-      if (
-        im.isDown('left')  || im.isDown('right') ||
-        im.isDown('up')    || im.isDown('down')
-      ) {
-        // Cancel the attack and resume idle
-        this.isAttacking = false;
-        this._resumeIdle();
-      }
-      return;  // Skip movement/animation logic while attack is active
+    // 1) If dead, block movement
+    if (this.healthManager.hp === 0) {
+      this.player.setVelocity(0, 0);
+      return;
     }
 
-    // ---- MOVEMENT & RUN/WALK ----
-    const im       = this.inputMgr;
-    const running  = im.isDown('shift');
-    const speed    = running ? this.runSpeed : this.walkSpeed;
-    let vx = 0, vy = 0, animKey = '';
+    // 2) Cancel one-shot animations on movement
+    const anim = this.player.anims.currentAnim;
+    if (anim && !anim.loop && this.inputMgr.anyMovement()) {
+      this.player.anims.stop();
+    }
 
-    // Horizontal movement
+    // 3) Movement & run/walk
+    const im      = this.inputMgr;
+    const running = im.isDown('shift');
+    const speed   = running ? this.runSpeed : this.walkSpeed;
+    let vx = 0, vy = 0, key = '';
+
     if (im.isDown('left')) {
-      vx = -speed;
-      this.player.setFlipX(true);
-      this.player.facing = 'side';
-      animKey = running ? 'runSide' : 'walkSide';
+      vx = -speed; this.player.setFlipX(true);  this.player.facing = 'side';
+      key = running ? 'runSide' : 'walkSide';
     } else if (im.isDown('right')) {
-      vx = speed;
-      this.player.setFlipX(false);
-      this.player.facing = 'side';
-      animKey = running ? 'runSide' : 'walkSide';
+      vx = speed;  this.player.setFlipX(false); this.player.facing = 'side';
+      key = running ? 'runSide' : 'walkSide';
     }
-
-    // Vertical movement
     if (im.isDown('up')) {
-      vy = -speed;
-      this.player.facing = 'up';
-      animKey = running ? 'runUp' : 'walkUp';
+      vy = -speed; this.player.facing = 'up';
+      key = running ? 'runUp' : 'walkUp';
     } else if (im.isDown('down')) {
-      vy = speed;
-      this.player.facing = 'down';
-      animKey = running ? 'runDown' : 'walkDown';
+      vy = speed;  this.player.facing = 'down';
+      key = running ? 'runDown' : 'walkDown';
     }
 
-    // Apply velocity
     this.player.setVelocity(vx, vy);
 
-    // Play the relevant animation
     if (vx !== 0 || vy !== 0) {
-      this.player.anims.play(animKey, true);
+      this.player.anims.play(key, true);
     } else {
-      // No input: revert to idle animation
-      this._resumeIdle();
+      // Idle fallback
+      const idleKey =
+        'idle' +
+        this.player.facing.charAt(0).toUpperCase() +
+        this.player.facing.slice(1);
+      this.player.anims.play(idleKey, true);
     }
-  }
-
-  // ---- HELPER: PLAY ONE-SHOT ANIMATION ----
-  _playOnce(baseKey) {
-    const dir = this.player.facing;
-    const fullKey = baseKey + dir.charAt(0).toUpperCase() + dir.slice(1);
-    this.player.anims.play(fullKey);
-    this.player.once('animationcomplete', () => {
-      this.isAttacking = false;
-      this._resumeIdle();
-    });
-  }
-
-  // ---- HELPER: RESUME IDLE ----
-  _resumeIdle() {
-    const key = 'idle' + this.player.facing.charAt(0).toUpperCase() + this.player.facing.slice(1);
-    this.player.anims.play(key, true);
-  }
-
-  // ---- DEATH HANDLING ----
-  _die() {
-    this.isDead = true;
-    // Log analytics event
-    window.analytics.logEvent('player_died', { timestamp: Date.now() });
-
-    // Play the death animation once
-    const dir = this.player.facing;
-    const key = 'death' + dir.charAt(0).toUpperCase() + dir.slice(1);
-    this.player.setVelocity(0);
-    this.player.anims.play(key);
-    this.player.once('animationcomplete', () => {
-      // Show the death/resurrect modal
-      this.deathModal.setVisible(true);
-    });
-  }
-
-  // ---- DEATH MODAL / RESPAWN ----
-  _createDeathModal() {
-    const cam = this.cameras.main;
-    // Container to hold all UI elements
-    this.deathModal = this.add.container(0, 0).setVisible(false);
-
-    // Semi-transparent full-screen backdrop
-    const bg = this.add.rectangle(cam.centerX, cam.centerY, cam.width, cam.height, 0x000000, 0.7);
-
-    // Centered dialog box
-    const boxW = cam.width * 0.6;
-    const boxH = cam.height * 0.4;
-    const box  = this.add.rectangle(cam.centerX, cam.centerY, boxW, boxH, 0x222222);
-
-    // "You Died" text
-    const txt = this.add.text(cam.centerX, cam.centerY - 40, 'You Died', {
-      font: '40px "IM Fell English"',
-      fill: '#ff4444'
-    }).setOrigin(0.5);
-
-    // Respawn button
-    const btn = this.add.text(cam.centerX, cam.centerY + 40, 'Respawn', {
-      fontFamily: '"IM Fell English", serif',
-      fontSize: '32px',
-      fill: '#ffffff',
-      backgroundColor: '#004400',
-      padding: { x: 20, y: 10 }
-    })
-    .setOrigin(0.5)
-    .setInteractive({ useHandCursor: true })
-    .on('pointerdown', () => this._respawn());
-
-    // Add all to container
-    this.deathModal.add([bg, box, txt, btn]);
-  }
-
-  // ---- HELPER: RESPAWN PLAYER ----
-  _respawn() {
-    window.analytics.logEvent('player_respawn', { timestamp: Date.now() });
-    this.deathModal.setVisible(false);
-    this.isDead = false;
-    // Reset position to center of world (or use a saved checkpoint)
-    const cam = this.cameras.main;
-    this.player.setPosition(cam.centerX, cam.centerY);
-    this._resumeIdle();
   }
 }

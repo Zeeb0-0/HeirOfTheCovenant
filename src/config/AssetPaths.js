@@ -2,81 +2,60 @@
 
 export default {
   sprites: {
-    // === PLAYER BODY ANIMATIONS ===
-    idleDown:  'assets/sprites/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Down-Sheet.png',
-    idleUp:    'assets/sprites/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Up-Sheet.png',
-    idleSide:  'assets/sprites/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Side-Sheet.png',
+    // === PLAYER (64×64 frames) ===
+    idleDown:   { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Down-Sheet.png',    frameWidth:64, frameHeight:64 },
+    idleUp:     { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Up-Sheet.png',      frameWidth:64, frameHeight:64 },
+    idleSide:   { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Side-Sheet.png',    frameWidth:64, frameHeight:64 },
+    walkDown:   { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Down-Sheet.png',    frameWidth:64, frameHeight:64 },
+    walkUp:     { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Up-Sheet.png',      frameWidth:64, frameHeight:64 },
+    walkSide:   { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Side-Sheet.png',    frameWidth:64, frameHeight:64 },
+    runDown:    { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Run_Base/Run_Down-Sheet.png',      frameWidth:64, frameHeight:64 },
+    runUp:      { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Run_Base/Run_Up-Sheet.png',        frameWidth:64, frameHeight:64 },
+    runSide:    { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Run_Base/Run_Side-Sheet.png',      frameWidth:64, frameHeight:64 },
+    hitDown:    { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Hit_Base/Hit_Down-Sheet.png',      frameWidth:64, frameHeight:64 },
+    hitUp:      { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Hit_Base/Hit_Up-Sheet.png',        frameWidth:64, frameHeight:64 },
+    hitSide:    { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Hit_Base/Hit_Side-Sheet.png',      frameWidth:64, frameHeight:64 },
+    pierceDown: { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Pierce_Base/Pierce_Down-Sheet.png', frameWidth:64, frameHeight:64 },
+    pierceUp:   { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Pierce_Base/Pierce_Up-Sheet.png',   frameWidth:64, frameHeight:64 },
+    pierceSide: { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Pierce_Base/Pierce_Side-Sheet.png', frameWidth:64, frameHeight:64 },
+    deathDown:  { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Death_Base/Death_Down-Sheet.png',    frameWidth:64, frameHeight:64 },
+    deathUp:    { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Death_Base/Death_Up-Sheet.png',      frameWidth:64, frameHeight:64 },
+    deathSide:  { path: 'assets/sprites/Entities/Characters/Body_A/Animations/Death_Base/Death_Side-Sheet.png',    frameWidth:64, frameHeight:64 },
 
-    walkDown:  'assets/sprites/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Down-Sheet.png',
-    walkUp:    'assets/sprites/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Up-Sheet.png',
-    walkSide:  'assets/sprites/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Side-Sheet.png',
+    // === NPCs: adjust frame sizes if different! ===
+    knightIdle:   { path: "assets/sprites/Entities/Npcs/Knight/Idle/Idle-Sheet.png",    frameWidth:64, frameHeight:64 },
+    knightRun:    { path: "assets/sprites/Entities/Npcs/Knight/Run/Run-Sheet.png",      frameWidth:64, frameHeight:64 },
+    knightDeath:  { path: "assets/sprites/Entities/Npcs/Knight/Death/Death-Sheet.png", frameWidth:64, frameHeight:64 },
 
-    runDown:   'assets/sprites/Entities/Characters/Body_A/Animations/Run_Base/Run_Down-Sheet.png',
-    runUp:     'assets/sprites/Entities/Characters/Body_A/Animations/Run_Base/Run_Up-Sheet.png',
-    runSide:   'assets/sprites/Entities/Characters/Body_A/Animations/Run_Base/Run_Side-Sheet.png',
+    rogueIdle:    { path: "assets/sprites/Entities/Npcs/Rogue/Idle/Idle-Sheet.png",     frameWidth:64, frameHeight:64 },
+    rogueRun:     { path: "assets/sprites/Entities/Npcs/Rogue/Run/Run-Sheet.png",       frameWidth:64, frameHeight:64 },
+    rogueDeath:   { path: "assets/sprites/Entities/Npcs/Rogue/Death/Death-Sheet.png",  frameWidth:64, frameHeight:64 },
 
-    hitDown:   'assets/sprites/Entities/Characters/Body_A/Animations/Hit_Base/Hit_Down-Sheet.png',
-    hitUp:     'assets/sprites/Entities/Characters/Body_A/Animations/Hit_Base/Hit_Up-Sheet.png',
-    hitSide:   'assets/sprites/Entities/Characters/Body_A/Animations/Hit_Base/Hit_Side-Sheet.png',
+    mageIdle:     { path: "assets/sprites/Entities/Npcs/Wizard/Idle/Idle-Sheet.png",    frameWidth:64, frameHeight:64 },
+    mageRun:      { path: "assets/sprites/Entities/Npcs/Wizard/Run/Run-Sheet.png",      frameWidth:64, frameHeight:64 },
+    mageDeath:    { path: "assets/sprites/Entities/Npcs/Wizard/Death/Death-Sheet.png",  frameWidth:64, frameHeight:64 },
 
-    pierceDown:'assets/sprites/Entities/Characters/Body_A/Animations/Pierce_Base/Pierce_Down-Sheet.png',
-    pierceUp:  'assets/sprites/Entities/Characters/Body_A/Animations/Pierce_Base/Pierce_Up-Sheet.png',
-    pierceSide:'assets/sprites/Entities/Characters/Body_A/Animations/Pierce_Base/Pierce_Side-Sheet.png',
+    // === Mobs: same approach, adjust per actual size ===
+    orcIdle:         { path: "assets/sprites/Entities/Mobs/Orc Crew/Orc/Idle/Idle-Sheet.png",             frameWidth:64, frameHeight:64 },
+    orcRun:          { path: "assets/sprites/Entities/Mobs/Orc Crew/Orc/Run/Run-Sheet.png",               frameWidth:64, frameHeight:64 },
+    orcDeath:        { path: "assets/sprites/Entities/Mobs/Orc Crew/Orc/Death/Death-Sheet.png",           frameWidth:64, frameHeight:64 },
+    orcRogueIdle:    { path: "assets/sprites/Entities/Mobs/Orc Crew/Orc - Rogue/Idle/Idle-Sheet.png",      frameWidth:64, frameHeight:64 },
+    orcRogueRun:     { path: "assets/sprites/Entities/Mobs/Orc Crew/Orc - Rogue/Run/Run-Sheet.png",        frameWidth:64, frameHeight:64 },
+    orcRogueDeath:   { path: "assets/sprites/Entities/Mobs/Orc Crew/Orc - Rogue/Death/Death-Sheet.png",    frameWidth:64, frameHeight:64 },
+    // … repeat for shaman & warrior …
 
-    deathDown: 'assets/sprites/Entities/Characters/Body_A/Animations/Death_Base/Death_Down-Sheet.png',
-    deathUp:   'assets/sprites/Entities/Characters/Body_A/Animations/Death_Base/Death_Up-Sheet.png',
-    deathSide: 'assets/sprites/Entities/Characters/Body_A/Animations/Death_Base/Death_Side-Sheet.png',
-
-    // === NPCs: Neutral / Friendly ===
-    // Knight
-    knightIdle:  "assets/sprites/Entities/Npc's/Knight/Idle/Idle-Sheet.png",
-    knightDeath: "assets/sprites/Entities/Npc's/Knight/Death/Death-Sheet.png",
-    knightRun:   "assets/sprites/Entities/Npc's/Knight/Run/Run-Sheet.png",
-    // Rogue
-    rogueIdle:   "assets/sprites/Entities/Npc's/Rogue/Idle/Idle-Sheet.png",
-    rogueDeath:  "assets/sprites/Entities/Npc's/Rogue/Death/Death-Sheet.png",
-    rogueRun:    "assets/sprites/Entities/Npc's/Rogue/Run/Run-Sheet.png",
-    // Mage (Wizzard)
-    mageIdle:    "assets/sprites/Entities/Npc's/Wizzard/Idle/Idle-Sheet.png",
-    mageDeath:   "assets/sprites/Entities/Npc's/Wizzard/Death/Death-Sheet.png",
-    mageRun:     "assets/sprites/Entities/Npc's/Wizzard/Run/Run-Sheet.png",
-
-    // === MOBS: Orc Crew ===
-    // Orc - Base
-    orcIdle:     "assets/sprites/Entities/Mobs/Orc Crew/Orc/Idle/Idle-Sheet.png",
-    orcDeath:    "assets/sprites/Entities/Mobs/Orc Crew/Orc/Death/Death-Sheet.png",
-    orcRun:      "assets/sprites/Entities/Mobs/Orc Crew/Orc/Run/Run-Sheet.png",
-    // Orc - Rogue
-    orcRogueIdle:  "assets/sprites/Entities/Mobs/Orc Crew/Orc - Rogue/Idle/Idle-Sheet.png",
-    orcRogueDeath: "assets/sprites/Entities/Mobs/Orc Crew/Orc - Rogue/Death/Death-Sheet.png",
-    orcRogueRun:   "assets/sprites/Entities/Mobs/Orc Crew/Orc - Rogue/Run/Run-Sheet.png",
-    // Orc - Shaman
-    orcShamanIdle:  "assets/sprites/Entities/Mobs/Orc Crew/Orc - Shaman/Idle/Idle-Sheet.png",
-    orcShamanDeath: "assets/sprites/Entities/Mobs/Orc Crew/Orc - Shaman/Death/Death-Sheet.png",
-    orcShamanRun:   "assets/sprites/Entities/Mobs/Orc Crew/Orc - Shaman/Run/Run-Sheet.png",
-    // Orc - Warrior
-    orcWarriorIdle:  "assets/sprites/Entities/Mobs/Orc Crew/Orc - Warrior/Idle/Idle-Sheet.png",
-    orcWarriorDeath: "assets/sprites/Entities/Mobs/Orc Crew/Orc - Warrior/Death/Death-Sheet.png",
-    orcWarriorRun:   "assets/sprites/Entities/Mobs/Orc Crew/Orc - Warrior/Run/Run-Sheet.png",
-
-    // === MOBS: Skeleton Crew ===
-    // Skeleton - Base
-    skeletonBaseIdle:   "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Base/Idle/Idle-Sheet.png",
-    skeletonBaseDeath:  "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Base/Death/Death-Sheet.png",
-    skeletonBaseRun:    "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Base/Run/Run-Sheet.png",
-    // Skeleton - Mage
-    skeletonMageIdle:   "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Mage/Idle/Idle-Sheet.png",
-    skeletonMageDeath:  "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Mage/Death/Death-Sheet.png",
-    skeletonMageRun:    "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Mage/Run/Run-Sheet.png",
-    // Skeleton - Rogue
-    skeletonRogueIdle:  "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Rogue/Idle/Idle-Sheet.png",
-    skeletonRogueDeath: "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Rogue/Death/Death-Sheet.png",
-    skeletonRogueRun:   "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Rogue/Run/Run-Sheet.png",
-    // Skeleton - Warrior
-    skeletonWarriorIdle:  "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Warrior/Idle/Idle-Sheet.png",
-    skeletonWarriorDeath: "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Warrior/Death/Death-Sheet.png",
-    skeletonWarriorRun:   "assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Warrior/Run/Run-Sheet.png"
+    // === Skeleton Crew similarly …
+    skeletonBaseIdle:   { path:"assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Base/Idle/Idle-Sheet.png",  frameWidth:64, frameHeight:64 },
+    skeletonBaseRun:    { path:"assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Base/Run/Run-Sheet.png",   frameWidth:64, frameHeight:64 },
+    skeletonBaseDeath:  { path:"assets/sprites/Entities/Mobs/Skeleton Crew/Skeleton - Base/Death/Death-Sheet.png", frameWidth:64, frameHeight:64 },
+    // … and so on …
   },
+
+  ui: {
+    // Health Bar UI (use only 9 frames: 0–8)
+    lifeHealing: { path:'assets/ui/HealthRegeneration/LifeHealing-Sheet.png', frameWidth:64, frameHeight:16 }
+  },
+
   audio: {
     bgm: 'assets/audio/bgm.mp3'
   }

@@ -3,148 +3,135 @@
 /**
  * AnimationManager
  * ----------------
- * Centralizes creation of all animations (player, NPCs, mobs).
- * Call createAllAnimations() in your scene once all relevant spritesheets
- * have been preloaded.
+ * Centralizes creation of all animations (characters, NPCs, mobs) and now UI.
  */
 export default class AnimationManager {
-  /**
-   * @param {Phaser.Scene} scene  - The scene on which to register animations.
-   */
   constructor(scene) {
     this.scene = scene;
   }
 
   /**
-   * Helper to register a single spritesheet animation.
-   *
-   * @param {string} key         - Animation key, matching loaded spritesheet key.
-   * @param {number} frameCount  - Number of frames in the sheet.
-   * @param {number} frameRate   - Frames per second to play the animation.
-   * @param {boolean} loop       - Whether the animation should loop (true => repeat=-1).
+   * Low-level helper to register one spritesheet animation.
+   * @param {string} key        - Animation key matching the loaded spritesheet.
+   * @param {number} frameCount - Number of frames to include (0 .. frameCount-1).
+   * @param {number} frameRate  - Playback speed in FPS.
+   * @param {boolean} loop      - Loop indefinitely if true, otherwise play once.
    */
   _create(key, frameCount, frameRate = 8, loop = true) {
     this.scene.anims.create({
       key,
-      frames: this.scene.anims.generateFrameNumbers(key, { start: 0, end: frameCount - 1 }),
+      frames: this.scene.anims.generateFrameNumbers(key, {
+        start: 0,
+        end: frameCount - 1
+      }),
       frameRate,
       repeat: loop ? -1 : 0
     });
   }
 
-  /**
-   * Registers all player animations (Idle, Walk, Run, Hit, Pierce, Death)
-   * in three “facings”: Down, Up, Side.
-   */
+  /** Player animations: Idle, Walk, Run, Hit, Pierce, Death (Down/Up/Side) */
   createPlayerAnimations() {
-    // Idle animations: 4 frames, looping
-    this._create('idleDown',  4, 8,  true);
-    this._create('idleUp',    4, 8,  true);
-    this._create('idleSide',  4, 8,  true);
+    // Idle (4f, loop)
+    this._create('idleDown', 4, 8, true);
+    this._create('idleUp',   4, 8, true);
+    this._create('idleSide', 4, 8, true);
 
-    // Walk animations: 6 frames, looping
-    this._create('walkDown',  6, 8,  true);
-    this._create('walkUp',    6, 8,  true);
-    this._create('walkSide',  6, 8,  true);
+    // Walk (6f, loop)
+    this._create('walkDown', 6, 8, true);
+    this._create('walkUp',   6, 8, true);
+    this._create('walkSide', 6, 8, true);
 
-    // Run animations: 6 frames @12fps, looping
-    this._create('runDown',   6, 12, true);
-    this._create('runUp',     6, 12, true);
-    this._create('runSide',   6, 12, true);
+    // Run (6f @12fps, loop)
+    this._create('runDown',  6, 12, true);
+    this._create('runUp',    6, 12, true);
+    this._create('runSide',  6, 12, true);
 
-    // Unarmed Hit: 4 frames @8fps, non-looping
-    this._create('hitDown',   4, 8,  false);
-    this._create('hitUp',     4, 8,  false);
-    this._create('hitSide',   4, 8,  false);
+    // Hit (4f @8fps, one-shot)
+    this._create('hitDown',  4, 8, false);
+    this._create('hitUp',    4, 8, false);
+    this._create('hitSide',  4, 8, false);
 
-    // Sword Pierce: 8 frames @12fps, non-looping
-    this._create('pierceDown',8, 12, false);
+    // Pierce (8f @12fps, one-shot)
+    this._create('pierceDown', 8, 12, false);
     this._create('pierceUp',   8, 12, false);
     this._create('pierceSide', 8, 12, false);
 
-    // Death: 8 frames @6fps, non-looping
-    this._create('deathDown',  8, 6,  false);
-    this._create('deathUp',    8, 6,  false);
-    this._create('deathSide',  8, 6,  false);
+    // Death (8f @6fps, one-shot)
+    this._create('deathDown',  8, 6, false);
+    this._create('deathUp',    8, 6, false);
+    this._create('deathSide',  8, 6, false);
   }
 
-  /**
-   * Registers NPC animations for neutral/friendly characters:
-   * Knight, Rogue, Mage — each has Idle (4), Run (6), Death (6).
-   */
+  /** NPC animations: Knight, Rogue, Mage (Idle 4f, Run 6f, Death 6f) */
   createNpcAnimations() {
     const npcs = [
       { prefix: 'knight', idle: 4, run: 6, death: 6 },
       { prefix: 'rogue',  idle: 4, run: 6, death: 6 },
       { prefix: 'mage',   idle: 4, run: 6, death: 6 }
     ];
-
-    npcs.forEach(npc => {
-      const { prefix, idle, run, death } = npc;
-      // Idle: looping
-      this._create(`${prefix}Idle`,  idle, 8,  true);
-      // Run: looping
-      this._create(`${prefix}Run`,   run,  8,  true);
-      // Death: non-looping
-      this._create(`${prefix}Death`, death, 8, false);
+    npcs.forEach(n => {
+      this._create(`${n.prefix}Idle`,  n.idle,  8, true);
+      this._create(`${n.prefix}Run`,   n.run,   8, true);
+      this._create(`${n.prefix}Death`, n.death, 8, false);
     });
   }
 
-  /**
-   * Registers Mob animations for hostile creatures:
-   * - Orc variants: base, rogue, shaman, warrior
-   * - Skeleton variants: base, mage, rogue, warrior
-   * Each has Idle (4), Run (6), Death (6).
-   */
+  /** Mob animations: various Orc & Skeleton variants (Idle 4f, Run 6f, Death 6f) */
   createMobAnimations() {
-    // Define each mob category and its folder prefix
     const mobs = [
-      { prefix: 'orcIdle',        frameCount: 4 }, // base orc Idle
-      { prefix: 'orcRun',         frameCount: 6 },
-      { prefix: 'orcDeath',       frameCount: 6 },
-      { prefix: 'orcRogueIdle',   frameCount: 4 },
-      { prefix: 'orcRogueRun',    frameCount: 6 },
-      { prefix: 'orcRogueDeath',  frameCount: 6 },
-      { prefix: 'orcShamanIdle',  frameCount: 4 },
-      { prefix: 'orcShamanRun',   frameCount: 6 },
-      { prefix: 'orcShamanDeath', frameCount: 6 },
-      { prefix: 'orcWarriorIdle', frameCount: 4 },
-      { prefix: 'orcWarriorRun',  frameCount: 6 },
-      { prefix: 'orcWarriorDeath',frameCount: 6 },
+      // Orc Crew
+      { key: 'orcIdle',        f: 4 },
+      { key: 'orcRun',         f: 6 },
+      { key: 'orcDeath',       f: 6 },
+      { key: 'orcRogueIdle',   f: 4 },
+      { key: 'orcRogueRun',    f: 6 },
+      { key: 'orcRogueDeath',  f: 6 },
+      { key: 'orcShamanIdle',  f: 4 },
+      { key: 'orcShamanRun',   f: 6 },
+      { key: 'orcShamanDeath', f: 6 },
+      { key: 'orcWarriorIdle', f: 4 },
+      { key: 'orcWarriorRun',  f: 6 },
+      { key: 'orcWarriorDeath',f: 6 },
 
-      { prefix: 'skeletonBaseIdle',   frameCount: 4 },
-      { prefix: 'skeletonBaseRun',    frameCount: 6 },
-      { prefix: 'skeletonBaseDeath',  frameCount: 6 },
-      { prefix: 'skeletonMageIdle',   frameCount: 4 },
-      { prefix: 'skeletonMageRun',    frameCount: 6 },
-      { prefix: 'skeletonMageDeath',  frameCount: 6 },
-      { prefix: 'skeletonRogueIdle',  frameCount: 4 },
-      { prefix: 'skeletonRogueRun',   frameCount: 6 },
-      { prefix: 'skeletonRogueDeath', frameCount: 6 },
-      { prefix: 'skeletonWarriorIdle',  frameCount: 4 },
-      { prefix: 'skeletonWarriorRun',   frameCount: 6 },
-      { prefix: 'skeletonWarriorDeath', frameCount: 6 }
+      // Skeleton Crew
+      { key: 'skeletonBaseIdle',   f: 4 },
+      { key: 'skeletonBaseRun',    f: 6 },
+      { key: 'skeletonBaseDeath',  f: 6 },
+      { key: 'skeletonMageIdle',   f: 4 },
+      { key: 'skeletonMageRun',    f: 6 },
+      { key: 'skeletonMageDeath',  f: 6 },
+      { key: 'skeletonRogueIdle',  f: 4 },
+      { key: 'skeletonRogueRun',   f: 6 },
+      { key: 'skeletonRogueDeath', f: 6 },
+      { key: 'skeletonWarriorIdle',f: 4 },
+      { key: 'skeletonWarriorRun', f: 6 },
+      { key: 'skeletonWarriorDeath',f:6 }
     ];
 
     mobs.forEach(mob => {
-      const { prefix, frameCount } = mob;
-      // Determine loop: only Death is non-looping
-      const loop = !prefix.toLowerCase().includes('death');
-      // Default frameRate 8 fps
-      this._create(prefix, frameCount, 8, loop);
+      // Death frames (keys containing 'Death') are one-shot.
+      const loop = !mob.key.toLowerCase().includes('death');
+      this._create(mob.key, mob.f, 8, loop);
     });
   }
 
   /**
-   * Convenience method to register EVERY animation in the game:
-   * Players, NPCs, and Mobs.
+   * UI animations:
+   * - lifeHealing: health bar frames 0–8 represent 0%–100% health.
+   *   We register only 9 frames here and never loop.
+   */
+  createUIAnimations() {
+    this._create('lifeHealing', 9, 0, false);
+  }
+
+  /**
+   * Registers all animations in one go:
+   * player, NPCs, mobs, and UI elements.
    */
   createAllAnimations() {
     this.createPlayerAnimations();
     this.createNpcAnimations();
     this.createMobAnimations();
-    // In future, you might also call:
-    // this.createEnvironmentAnimations();
-    // this.createUIAnimations();
+    this.createUIAnimations();
   }
 }
